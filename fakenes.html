@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lernpfad: Der Nachrichten-Dschungel</title>
+    
+    <!-- Tailwind CSS für das Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel für JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Großes Emoji Element als Bild-Ersatz
+        const EmojiBox = ({ emoji }) => (
+            <div className="flex items-center justify-center w-full rounded-xl bg-slate-50 border-2 border-slate-100 p-6 text-center mb-6 shadow-inner">
+                <span className="text-7xl md:text-8xl">{emoji}</span>
+            </div>
+        );
+
+        // Ruhige, unaufdringliche Auftrag-Komponente für das Arbeitsblatt (Mindmap)
+        const Auftrag = ({ text }) => (
+            <div className="bg-blue-50 border-l-8 border-blue-500 p-5 rounded-r-xl shadow-sm flex items-center gap-4 w-full mt-6 fade-in">
+                <span className="text-3xl">✏️</span>
+                <div>
+                    <h3 className="text-sm font-bold text-blue-700 uppercase tracking-wide mb-1">Dein Auftrag für die Mindmap</h3>
+                    <p className="text-lg text-slate-800 font-medium">{text}</p>
+                </div>
+            </div>
+        );
+
+        // --- FOLIE 1: Brainstorming (Eingabe) ---
+        const Slide1 = ({ quellen, inputValue, setInputValue, handleAddQuelle, handleDeleteQuelle }) => (
+            <div className="flex flex-col h-full p-10 max-w-5xl mx-auto w-full pt-12 fade-in">
+                <span className="text-blue-600 font-bold uppercase tracking-widest mb-2 text-center">Start</span>
+                <h1 className="text-4xl font-extrabold text-slate-900 mb-6 text-center">
+                    Woher können wir überall Informationen bekommen?
+                </h1>
+                
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm mb-8 max-w-3xl mx-auto w-full">
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
+                        So geht's: Tippe einen Begriff ein und drücke auf "Hinzufügen". Wiederhole das für jede neue Idee!
+                    </p>
+                    <form onSubmit={handleAddQuelle} className="flex flex-col sm:flex-row gap-4">
+                        <input 
+                            type="text" 
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder="Tippe hier..." 
+                            className="flex-grow p-4 border-2 border-slate-200 rounded-xl text-xl focus:outline-none focus:border-blue-500 transition"
+                        />
+                        <button type="submit" className="bg-blue-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-blue-700 transition shadow-md">
+                            Hinzufügen
+                        </button>
+                    </form>
+                </div>
+
+                <div className="w-full max-w-4xl mx-auto flex flex-wrap justify-center gap-3 mb-4 flex-grow content-start">
+                    {quellen.length === 0 ? (
+                        <p className="text-slate-400 text-xl italic w-full text-center">Noch keine Ideen eingetippt.</p>
+                    ) : (
+                        quellen.map((quelle) => (
+                            <div key={quelle.id} className="group bg-blue-50 border border-blue-200 text-blue-900 px-5 py-2 rounded-full text-xl flex items-center gap-3 font-medium shadow-sm fade-in">
+                                {quelle.text}
+                                <button onClick={() => handleDeleteQuelle(quelle.id)} className="text-blue-300 hover:text-red-500 transition">✖</button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const TOTAL_SLIDES = 12; 
+            const [currentSlide, setCurrentSlide] = useState(1);
+            
+            const [quellen, setQuellen] = useState([]);
+            const [inputValue, setInputValue] = useState("");
+            const [autoAdded, setAutoAdded] = useState(false);
+
+            // Automatische Ergänzung, wenn beim Weiterklicken weniger als 3 Begriffe gesammelt wurden
+            useEffect(() => {
+                if (currentSlide > 1 && !autoAdded) {
+                    if (quellen.length < 3) {
+                        // Prüfen, ob "Buch" oder "Bücher" schon genannt wurde (egal ob groß oder klein geschrieben)
+                        const hatBuch = quellen.some(q => {
+                            const text = q.text.toLowerCase();
+                            return text.includes("buch") || text.includes("bücher");
+                        });
+
+                        const neueIdeen = [];
+                        let idCounter = 1;
+
+                        // Nur hinzufügen, wenn es noch nicht genannt wurde
+                        if (!hatBuch) {
+                            neueIdeen.push({ id: Date.now() + idCounter++, text: "Buch", kategorie: null });
+                        }
+                        
+                        neueIdeen.push({ id: Date.now() + idCounter++, text: "Video im Internet", kategorie: null });
+                        neueIdeen.push({ id: Date.now() + idCounter++, text: "Plakat an der Straße", kategorie: null });
+
+                        setQuellen(prev => [...prev, ...neueIdeen]);
+                    }
+                    setAutoAdded(true); // Nur einmalig prüfen
+                }
+            }, [currentSlide, quellen, autoAdded]);
+
+            const handleAddQuelle = (e) => {
+                e.preventDefault();
+                if (inputValue.trim() !== "") {
+                    setQuellen([...quellen, { id: Date.now(), text: inputValue, kategorie: null }]);
+                    setInputValue("");
+                }
+            };
+            const handleDeleteQuelle = (id) => setQuellen(quellen.filter(q => q.id !== id));
+            
+            // Funktion zum Kategorisieren (für Folie 8)
+            const handleKategorisieren = (id, kategorie) => {
+                setQuellen(quellen.map(q => q.id === id ? { ...q, kategorie: kategorie } : q));
+            };
+
+            const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, TOTAL_SLIDES));
+            const prevSlide = () => setCurrentSlide(prev => Math.max(prev - 1, 1));
+
+            // --- FOLIE 2: Das Problem ---
+            const Slide2 = () => (
+                <div className="flex flex-col items-center justify-center h-full p-10 text-center max-w-4xl mx-auto fade-in">
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8">Der Nachrichten-Dschungel 🌴</h1>
+                    <EmojiBox emoji="🤯 📱💻📺" />
+                    <p className="text-2xl text-slate-700 leading-relaxed mb-8">
+                        Du hast gerade viele Möglichkeiten gesammelt. Das Problem ist: <br/>
+                        <span className="font-black text-red-600 bg-red-50 px-2 rounded">Wir können nicht allem glauben!</span>
+                    </p>
+                    <div className="bg-blue-900 text-white p-8 rounded-2xl w-full shadow-lg">
+                        <h2 className="text-3xl font-bold">Die große Frage für heute lautet: <br/><br/>Woher weiß ich, was stimmt?</h2>
+                    </div>
+                </div>
+            );
+
+            // --- FOLIE 3: EINFÜHRUNG ZUM SORTIEREN (Die 2 Gruppen) ---
+            const Slide3 = () => (
+                <div className="flex flex-col h-full p-10 items-center justify-center max-w-5xl mx-auto w-full fade-in">
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-4 text-center">Wir müssen ordnen</h1>
+                    <p className="text-xl text-slate-600 mb-8 text-center">Um zu wissen, was stimmt, teilen wir die Nachrichten in zwei Gruppen ein.</p>
+
+                    <div className="flex gap-8 w-full flex-grow">
+                        <div className="w-1/2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center justify-center">
+                            <h2 className="text-lg font-bold text-green-500 uppercase tracking-wider mb-2">Gruppe 1</h2>
+                            <p className="text-3xl font-black text-green-900 mb-6">Die Profis</p>
+                            <EmojiBox emoji="🎙️📰" />
+                        </div>
+
+                        <div className="w-1/2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center justify-center">
+                            <h2 className="text-lg font-bold text-red-500 uppercase tracking-wider mb-2">Gruppe 2</h2>
+                            <p className="text-3xl font-black text-red-900 mb-6">Jeder Mensch</p>
+                            <EmojiBox emoji="📱🤳" />
+                        </div>
+                    </div>
+
+                    <Auftrag text="Hole dir ein Arbeitsblatt von vorne." />
+                </div>
+            );
+
+            // --- FOLIE 4: Journalisten (Mit interaktiver Eingabe & Weiter-Sperre) ---
+            const Slide4 = ({ setSlide4Completed }) => {
+                const [guess, setGuess] = useState("");
+                const [feedback, setFeedback] = useState(null);
+
+                const checkAnswer = (e) => {
+                    e.preventDefault();
+                    const cleanGuess = guess.toLowerCase().trim();
+                    if (!cleanGuess) return; // Verhindert leere Abgaben
+
+                    // Hilfsfunktion: Berechnet, wie viele Buchstaben falsch/anders sind
+                    const getDist = (a, b) => {
+                        if (a.length === 0) return b.length; 
+                        if (b.length === 0) return a.length; 
+                        const matrix = [];
+                        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+                        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+                        for (let i = 1; i <= b.length; i++) {
+                            for (let j = 1; j <= a.length; j++) {
+                                if (b.charAt(i-1) === a.charAt(j-1)) matrix[i][j] = matrix[i-1][j-1];
+                                else matrix[i][j] = Math.min(matrix[i-1][j-1] + 1, Math.min(matrix[i][j-1] + 1, matrix[i-1][j] + 1));
+                            }
+                        }
+                        return matrix[b.length][a.length];
+                    };
+
+                    const dist1 = getDist(cleanGuess, "journalist");
+                    const dist2 = getDist(cleanGuess, "journalisten");
+                    const minDist = Math.min(dist1, dist2);
+
+                    if (minDist === 0) {
+                        setFeedback({ type: 'success', message: 'Super!' });
+                    } else if (minDist <= 3) {
+                        // Bei bis zu 3 verdrehten/falschen Buchstaben
+                        setFeedback({ type: 'close', message: 'Fast richtig, es sind Journalisten!' });
+                    } else {
+                        // Völlig falsches Wort
+                        setFeedback({ type: 'wrong', message: 'Gute Idee, aber sie heißen Journalisten.' });
+                    }
+                    
+                    // Folie als bearbeitet markieren, um den "Weiter"-Button freizuschalten
+                    setSlide4Completed(true);
+                };
+
+                return (
+                    <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                        <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Wer sind diese Profis?</span>
+                        <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Gruppe 1: Die Profis</h1>
+                        
+                        {!feedback ? (
+                            <div className="text-center bg-white p-10 rounded-3xl shadow-sm border border-slate-200">
+                                <p className="text-2xl text-slate-700 mb-8">Überlege mal: Wie nennt man Menschen, die das Berichten von Nachrichten als echten Beruf gelernt haben?</p>
+                                <form onSubmit={checkAnswer} className="flex flex-col sm:flex-row gap-4 justify-center">
+                                    <input 
+                                        type="text" 
+                                        value={guess}
+                                        onChange={(e) => setGuess(e.target.value)}
+                                        placeholder="Tippe deine Idee hier..." 
+                                        className="p-4 border-2 border-slate-200 rounded-xl text-xl focus:outline-none focus:border-green-500 transition w-full max-w-md"
+                                    />
+                                    <button type="submit" className="bg-green-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-green-700 transition shadow-md">
+                                        Überprüfen
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <div className="bg-white p-8 rounded-3xl border-2 border-green-200 shadow-md fade-in">
+                                <div className={`p-4 mb-6 rounded-xl text-center font-bold text-2xl ${feedback.type === 'success' ? 'bg-green-100 text-green-800' : feedback.type === 'close' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                                    {feedback.message}
+                                </div>
+                                <h2 className="text-4xl font-black text-green-900 mb-6 text-center">Journalisten</h2>
+                                <EmojiBox emoji="🎤📓" />
+                                <ul className="space-y-4 text-xl text-slate-700 mb-6">
+                                    <li className="flex items-start gap-3"><span className="text-green-500">✅</span> Sie haben das Suchen und Berichten als echten Beruf gelernt.</li>
+                                    <li className="flex items-start gap-3"><span className="text-green-500">✅</span> Sie haben strenge Regeln: Sie dürfen nicht einfach Gerüchte weitersagen!</li>
+                                    <li className="flex items-start gap-3"><span className="text-green-500">✅</span> Sie müssen Fakten <b>streng prüfen</b>, bevor sie etwas veröffentlichen.</li>
+                                </ul>
+                                <Auftrag text="Jetzt können wir das linke Rechteck füllen! Schreibe 'Journalisten' hinein. Mache dann einen kleinen Ast daran und schreibe: 'Sie sammeln Informationen, prüfen sie und berichten, was passiert.'" />
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            // --- FOLIE 5: Die Redaktion (Teamwork) ---
+            const Slide5 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Teamwork</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Vier Augen sehen mehr als zwei!</h1>
+                    
+                    <div className="bg-white p-8 rounded-3xl border-2 border-green-200 shadow-md">
+                        <EmojiBox emoji="🏢👥💻" />
+                        <p className="text-2xl text-slate-700 mb-6">
+                            Ein Journalist arbeitet fast nie alleine. Sie arbeiten in großen Büros zusammen. Bevor eine Nachricht veröffentlicht wird, wird sie von anderen Kollegen noch einmal kontrolliert.
+                        </p>
+                        <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+                            <p className="text-xl font-bold text-green-900">Dieses Team nennt man: <br/><span className="text-4xl font-black mt-2 inline-block">Die Redaktion</span></p>
+                        </div>
+                    </div>
+                    <Auftrag text="Ergänze bei den Journalisten den Zweig: 'Die Redaktion: Team aus Journalisten'." />
+                </div>
+            );
+
+            // --- FOLIE 6: WIE ARBEITEN JOURNALISTEN? (Quellen) ---
+            const Slide6 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Die Recherche</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Wie prüfen Journalisten die Wahrheit?</h1>
+                    
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <p className="text-2xl text-slate-700 mb-6">
+                            Am besten sind Journalisten direkt am Ort des Geschehens. Aber wenn das nicht klappt, nutzen sie eine <b>Quelle</b>.
+                        </p>
+                        <EmojiBox emoji="👮‍♂️💬🎤" />
+                        
+                        <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+                            <h2 className="text-2xl font-bold text-green-900 mb-2">Die Quellen</h2>
+                            <p className="text-lg text-green-800">
+                                Eine Quelle ist der Ursprung. Das ist die Person oder das Dokument, das beweist, dass etwas stimmt (z.B. ein Polizist, ein Experte oder ein Foto). 
+                                Gute Journalisten prüfen immer <u>mehrere</u> Quellen!
+                            </p>
+                        </div>
+                    </div>
+                    <Auftrag text="Ergänze bei den Journalisten den Zweig: 'Quellen nutzen' (Polizei, Experten...)." />
+                </div>
+            );
+
+            // --- FOLIE 7: Gruppe 2 (Social Media) ---
+            const Slide7 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-red-600 font-bold uppercase tracking-widest mb-2 text-center">Das Gegenteil</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Gruppe 2: Social Media</h1>
+                    
+                    <div className="bg-white p-8 rounded-3xl border-2 border-red-200 shadow-md">
+                        <EmojiBox emoji="🤳📱" />
+                        <ul className="space-y-4 text-xl text-slate-700">
+                            <li className="flex items-start gap-3"><span className="text-red-500">❌</span> <b>Jeder kann posten:</b> Hier kann jeder einfach etwas behaupten.</li>
+                            <li className="flex items-start gap-3"><span className="text-red-500">❌</span> <b>Keine Kontrolle:</b> Es gibt keine Redaktion, die etwas vorher streng prüft!</li>
+                        </ul>
+                    </div>
+                    <Auftrag text="Schreibe nun 'Jeder Mensch' in das rechte Rechteck. Mache daran einen Ast für 'Social Media'. Zeichne frei weitere kleine Äste für: Jeder kann posten, Keine Kontrolle." />
+                </div>
+            );
+
+            // --- FOLIE 8: INTERAKTIVES SORTIEREN DER BEISPIELE ---
+            const Slide8 = ({ quellen, handleKategorisieren }) => (
+                <div className="flex flex-col h-full p-10 max-w-6xl mx-auto w-full fade-in">
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-4 text-center">Ordne deine eigenen Ideen ein!</h1>
+                    <p className="text-xl text-slate-600 mb-8 text-center">Wir haben jetzt beide Gruppen kennengelernt. Wo gehören die Dinge hin, die du ganz am Anfang genannt hast?</p>
+                    
+                    <div className="grid grid-cols-2 gap-6 mb-8 flex-grow">
+                        {/* Bereich: Profis */}
+                        <div className="bg-green-50 p-6 rounded-3xl border-2 border-green-200 flex flex-col">
+                            <h2 className="text-2xl font-black text-green-900 mb-4 text-center">Die Profis (Journalisten)</h2>
+                            <div className="flex-grow flex flex-col gap-3">
+                                {quellen.filter(q => q.kategorie === 'profi').map(quelle => (
+                                    <div key={quelle.id} className="bg-white px-4 py-3 rounded-xl shadow-sm text-green-800 font-bold text-center border border-green-100 flex justify-between items-center fade-in">
+                                        <span>{quelle.text}</span>
+                                        <button onClick={() => handleKategorisieren(quelle.id, null)} className="text-slate-400 hover:text-red-500 text-sm">✖</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Bereich: Jeder Mensch */}
+                        <div className="bg-red-50 p-6 rounded-3xl border-2 border-red-200 flex flex-col">
+                            <h2 className="text-2xl font-black text-red-900 mb-4 text-center">Jeder Mensch (Social Media)</h2>
+                            <div className="flex-grow flex flex-col gap-3">
+                                {quellen.filter(q => q.kategorie === 'social').map(quelle => (
+                                    <div key={quelle.id} className="bg-white px-4 py-3 rounded-xl shadow-sm text-red-800 font-bold text-center border border-red-100 flex justify-between items-center fade-in">
+                                        <span>{quelle.text}</span>
+                                        <button onClick={() => handleKategorisieren(quelle.id, null)} className="text-slate-400 hover:text-red-500 text-sm">✖</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Ungesortierte Begriffe */}
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm min-h-[120px]">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Noch zu sortieren:</h3>
+                        <div className="flex flex-wrap gap-4">
+                            {quellen.filter(q => q.kategorie === null).map((quelle) => (
+                                <div key={quelle.id} className="bg-slate-100 p-2 rounded-xl border border-slate-300 flex flex-col gap-2">
+                                    <span className="text-lg font-medium text-center px-4 text-slate-800">{quelle.text}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleKategorisieren(quelle.id, 'profi')} className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded-lg text-sm font-bold transition flex-1">Zu Journalisten</button>
+                                        <button onClick={() => handleKategorisieren(quelle.id, 'social')} className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg text-sm font-bold transition flex-1">Zu Social Media</button>
+                                    </div>
+                                </div>
+                            ))}
+                            {quellen.filter(q => q.kategorie === null).length === 0 && quellen.length > 0 && (
+                                <p className="text-green-500 font-bold w-full text-center text-xl">Toll! Du hast alle Ideen einsortiert.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <Auftrag text="Bist du fertig mit Sortieren? Trage nun deine eigenen Beispiele als kleine Zweige an die passenden Äste in deine Mindmap ein!" />
+                </div>
+            );
+
+            // --- FOLIE 9: DEFINITION - Seriöse Quelle ---
+            const Slide9 = () => {
+                return (
+                    <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                        <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Das Ziel</span>
+                        <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Das Geheimnis der Wahrheit</h1>
+                        
+                        <div className="bg-green-900 p-10 rounded-3xl shadow-xl text-center flex flex-col justify-center border-4 border-green-500">
+                            <span className="text-green-300 font-bold uppercase tracking-widest">Merke dir dieses Wort:</span>
+                            <h2 className="text-5xl md:text-6xl font-black text-white mt-4 mb-8">Seriöse Quelle</h2>
+                            <p className="text-2xl text-green-100 leading-relaxed">
+                                "Seriös" bedeutet <i>vertrauenswürdig</i>. <br/>
+                                Eine seriöse Quelle wird von echten Journalisten gemacht, die ihre Infos geprüft haben. Darauf können wir uns verlassen!
+                            </p>
+                        </div>
+
+                        <Auftrag text="Mache einen Arm bei 'Quellen nutzen' und schreibe 'Seriöse Quellen: Quellen, denen man vertrauen kann' dazu." />
+                    </div>
+                );
+            };
+
+            // --- FOLIE 10: WIE FINDEN WIR SERIÖSE QUELLEN? ---
+            const Slide10 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Für Dich</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Wo findest DU seriöse Quellen?</h1>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                            <span className="text-4xl mb-4">💻</span>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Kinder-<br/>Suchmaschinen</h2>
+                            <p className="text-green-600 font-bold">fragFINN, Blinde Kuh</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                            <span className="text-4xl mb-4">📺</span>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Kinder-<br/>Nachrichten</h2>
+                            <p className="text-green-600 font-bold">ZDF logo!, neuneinhalb</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                            <span className="text-4xl mb-4">📚</span>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Bücher</h2>
+                            <p className="text-green-600 font-bold">Schule, Bücherei</p>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
+                        <span className="text-2xl mt-1">💡</span>
+                        <p className="text-lg text-slate-700">
+                            <b>Wusstest du schon?</b> Die Bücher, die du kennst (Schulbücher oder Bücher aus der Stadtbücherei), wurden von Experten geschrieben und vorher streng geprüft. Sie sind tolle seriöse Quellen!
+                        </p>
+                    </div>
+
+                    <Auftrag text="Notiere dir diese Beispiele für seriöse Kinder-Nachrichten noch als letzte Zweige in deine Mindmap. Deine Mindmap ist jetzt komplett!" />
+                </div>
+            );
+
+            // --- FOLIE 11: Interaktives 4-Fragen Quiz ---
+            const Slide11 = () => {
+                const questions = [
+                    { 
+                        id: 1, emoji: "🎮🤳", quelle: "TikTok-Kanal '@PrankMaster99'",
+                        text: "Ein YouTuber postet: „Ab morgen gibt es für alle Gamer kostenlose Robux!“", 
+                        isSerios: false, explanation: "Unseriös! Keine Redaktion. Der YouTuber will wahrscheinlich nur Klicks." 
+                    },
+                    { 
+                        id: 2, emoji: "📺📰", quelle: "ZDF logo! Webseite",
+                        text: "Es wird gemeldet: „Wegen eines Sturms bleibt der Tierpark morgen geschlossen.“", 
+                        isSerios: true, explanation: "Seriös! 'logo!' hat eine Redaktion aus Journalisten, die das prüfen." 
+                    },
+                    { 
+                        id: 3, emoji: "💬📱", quelle: "Weitergeleitete WhatsApp-Nachricht",
+                        text: "Eine Nachricht: „Wenn du das hier nicht an 10 Leute schickst, kostet WhatsApp Geld!“", 
+                        isSerios: false, explanation: "Unseriös! Ein klassischer Kettenbrief. Jeder kann das einfach abtippen." 
+                    },
+                    { 
+                        id: 4, emoji: "🗞️🏢", quelle: "Lokalredaktion der Stadt-Zeitung",
+                        text: "In der Zeitung steht: „Nächste Woche eröffnet der neue Spielplatz.“", 
+                        isSerios: true, explanation: "Seriös! Zeitungen haben Journalisten, die ihre Quellen (z.B. den Bürgermeister) fragen." 
+                    }
+                ];
+
+                const [qIdx, setQIdx] = useState(0);
+                const [answered, setAnswered] = useState(false);
+                const [userIsSerios, setUserIsSerios] = useState(null);
+                const [score, setScore] = useState(0);
+
+                const currentQ = questions[qIdx];
+                const isDone = qIdx >= questions.length;
+
+                const handleAnswer = (ans) => {
+                    setUserIsSerios(ans); setAnswered(true);
+                    if (ans === currentQ.isSerios) setScore(score + 1);
+                };
+
+                if (isDone) {
+                    return (
+                        <div className="flex flex-col items-center justify-center h-full p-10 text-center fade-in max-w-2xl mx-auto">
+                            <span className="text-8xl mb-6">🏆</span>
+                            <h1 className="text-5xl font-black text-slate-900 mb-4">Quiz geschafft!</h1>
+                            <p className="text-2xl text-slate-600 mb-10">Du hast {score} von {questions.length} Nachrichten richtig erkannt als echter Detektiv.</p>
+                            <button onClick={() => { setQIdx(0); setScore(0); setAnswered(false); }} className="bg-slate-900 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-slate-800 transition shadow-lg">
+                                Quiz neustarten
+                            </button>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full fade-in">
+                        <div className="flex justify-between items-center mb-8">
+                            <h1 className="text-3xl font-extrabold text-slate-900">Quiz: Seriös oder Fake?</h1>
+                            <span className="font-bold text-slate-500 bg-slate-200 px-4 py-2 rounded-full">Frage {qIdx + 1} / {questions.length}</span>
+                        </div>
+                        
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 flex flex-col flex-grow">
+                            <div className="bg-blue-50 px-4 py-2 rounded-xl mb-6 self-start border border-blue-100 flex items-center gap-2">
+                                <span className="text-sm font-bold text-blue-600 uppercase">Angegebene Quelle:</span>
+                                <span className="text-lg font-black text-blue-900">{currentQ.quelle}</span>
+                            </div>
+                            
+                            <div className="flex flex-col md:flex-row items-center gap-6 mb-10">
+                                <span className="text-7xl">{currentQ.emoji}</span>
+                                <p className="text-3xl font-bold text-slate-800 leading-snug">{currentQ.text}</p>
+                            </div>
+
+                            {!answered ? (
+                                <div className="flex flex-col sm:flex-row gap-4 mt-auto">
+                                    <button onClick={() => handleAnswer(true)} className="flex-1 bg-green-50 hover:bg-green-100 border-2 border-green-500 text-green-900 py-6 text-2xl font-bold rounded-2xl transition shadow-sm">
+                                        ✅ Das ist seriös
+                                    </button>
+                                    <button onClick={() => handleAnswer(false)} className="flex-1 bg-red-50 hover:bg-red-100 border-2 border-red-500 text-red-900 py-6 text-2xl font-bold rounded-2xl transition shadow-sm">
+                                        ❌ Unseriös (Fake!)
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-auto bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 fade-in">
+                                    <h3 className={`text-2xl font-black mb-3 ${userIsSerios === currentQ.isSerios ? 'text-green-600' : 'text-red-600'}`}>
+                                        {userIsSerios === currentQ.isSerios ? 'Richtig!' : 'Leider falsch.'}
+                                    </h3>
+                                    <p className="text-xl text-slate-700 mb-8">{currentQ.explanation}</p>
+                                    <button onClick={() => { setAnswered(false); setUserIsSerios(null); setQIdx(qIdx + 1); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 text-xl font-bold rounded-xl transition shadow-md">
+                                        {qIdx === questions.length - 1 ? 'Zum Ergebnis' : 'Nächste Frage'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- FOLIE 12: Abschluss ---
+            const Slide12 = () => (
+                <div className="flex flex-col items-center justify-center h-full text-center p-10 max-w-4xl mx-auto w-full fade-in">
+                    <h1 className="text-5xl font-black text-slate-900 mb-6">Perfekt gemacht! 👏</h1>
+                    <p className="text-2xl text-slate-600 mb-12">Deine Mindmap ist fertig und du weißt, woran du echte Nachrichten erkennst.</p>
+                    <div className="bg-green-100 border-2 border-green-500 p-8 rounded-3xl w-full max-w-2xl shadow-sm">
+                        <p className="text-3xl font-bold text-green-900">Du bist bereit für den echten Nachrichten-Dschungel!</p>
+                    </div>
+                </div>
+            );
+
+            // Sperre für den Weiter-Button definieren
+            const [slide4Completed, setSlide4Completed] = useState(false);
+            const isNextDisabled = currentSlide === TOTAL_SLIDES || (currentSlide === 4 && !slide4Completed);
+
+            return (
+                <div className="h-screen w-screen flex flex-col overflow-hidden bg-slate-50">
+                    {/* Header Fortschritt */}
+                    <div className="h-2 w-full bg-slate-200">
+                        <div className="h-full bg-blue-600 transition-all duration-500 ease-out" style={{ width: `${(currentSlide / TOTAL_SLIDES) * 100}%` }}></div>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-grow relative overflow-y-auto pb-6">
+                        {currentSlide === 1 && <Slide1 quellen={quellen} inputValue={inputValue} setInputValue={setInputValue} handleAddQuelle={handleAddQuelle} handleDeleteQuelle={handleDeleteQuelle} />}
+                        {currentSlide === 2 && <Slide2 />}
+                        {currentSlide === 3 && <Slide3 />}
+                        {currentSlide === 4 && <Slide4 setSlide4Completed={setSlide4Completed} />}
+                        {currentSlide === 5 && <Slide5 />}
+                        {currentSlide === 6 && <Slide6 />}
+                        {currentSlide === 7 && <Slide7 />}
+                        {currentSlide === 8 && <Slide8 quellen={quellen} handleKategorisieren={handleKategorisieren} />}
+                        {currentSlide === 9 && <Slide9 />}
+                        {currentSlide === 10 && <Slide10 />}
+                        {currentSlide === 11 && <Slide11 />}
+                        {currentSlide === 12 && <Slide12 />}
+                    </div>
+
+                    {/* Navigation Footer */}
+                    <div className="h-24 bg-white border-t border-slate-200 flex justify-between items-center px-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+                        <button onClick={prevSlide} disabled={currentSlide === 1} className={`px-8 py-3 rounded-xl font-bold text-xl transition ${currentSlide === 1 ? 'text-slate-300 cursor-not-allowed bg-slate-50' : 'text-slate-700 bg-slate-100 hover:bg-slate-200'}`}>
+                            Zurück
+                        </button>
+                        
+                        <div className="text-slate-500 font-bold text-lg">
+                            Folie {currentSlide} von {TOTAL_SLIDES}
+                        </div>
+
+                        <button onClick={nextSlide} disabled={isNextDisabled} className={`px-8 py-3 rounded-xl font-bold text-xl transition shadow-sm ${isNextDisabled ? 'text-slate-300 cursor-not-allowed bg-slate-100' : 'text-white bg-blue-600 hover:bg-blue-700'}`}>
+                            Weiter
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
