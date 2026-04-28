@@ -41,14 +41,14 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Großes Emoji Element als Bild-Ersatz
+        // Großes Emoji Element
         const EmojiBox = ({ emoji }) => (
             <div className="flex items-center justify-center w-full rounded-xl bg-slate-50 border-2 border-slate-100 p-6 text-center mb-6 shadow-inner">
                 <span className="text-7xl md:text-8xl">{emoji}</span>
             </div>
         );
 
-        // Ruhige, unaufdringliche Auftrag-Komponente für das Arbeitsblatt (Mindmap)
+        // Ruhige Auftrag-Komponente
         const Auftrag = ({ text }) => (
             <div className="bg-blue-50 border-l-8 border-blue-500 p-5 rounded-r-xl shadow-sm flex items-center gap-4 w-full mt-6 fade-in">
                 <span className="text-3xl">✏️</span>
@@ -59,7 +59,7 @@
             </div>
         );
 
-        // --- FOLIE 1: Brainstorming (Eingabe) ---
+        // --- FOLIE 1: Brainstorming ---
         const Slide1 = ({ quellen, inputValue, setInputValue, handleAddQuelle, handleDeleteQuelle }) => (
             <div className="flex flex-col h-full p-10 max-w-5xl mx-auto w-full pt-12 fade-in">
                 <span className="text-blue-600 font-bold uppercase tracking-widest mb-2 text-center">Start</span>
@@ -101,18 +101,17 @@
         );
 
         const App = () => {
-            const TOTAL_SLIDES = 12; 
+            const TOTAL_SLIDES = 14; 
             const [currentSlide, setCurrentSlide] = useState(1);
             
             const [quellen, setQuellen] = useState([]);
             const [inputValue, setInputValue] = useState("");
             const [autoAdded, setAutoAdded] = useState(false);
 
-            // Automatische Ergänzung, wenn beim Weiterklicken weniger als 3 Begriffe gesammelt wurden
+            // Automatische Ergänzung
             useEffect(() => {
                 if (currentSlide > 1 && !autoAdded) {
                     if (quellen.length < 3) {
-                        // Prüfen, ob "Buch" oder "Bücher" schon genannt wurde (egal ob groß oder klein geschrieben)
                         const hatBuch = quellen.some(q => {
                             const text = q.text.toLowerCase();
                             return text.includes("buch") || text.includes("bücher");
@@ -121,7 +120,6 @@
                         const neueIdeen = [];
                         let idCounter = 1;
 
-                        // Nur hinzufügen, wenn es noch nicht genannt wurde
                         if (!hatBuch) {
                             neueIdeen.push({ id: Date.now() + idCounter++, text: "Buch", kategorie: null });
                         }
@@ -131,7 +129,7 @@
 
                         setQuellen(prev => [...prev, ...neueIdeen]);
                     }
-                    setAutoAdded(true); // Nur einmalig prüfen
+                    setAutoAdded(true); 
                 }
             }, [currentSlide, quellen, autoAdded]);
 
@@ -144,7 +142,6 @@
             };
             const handleDeleteQuelle = (id) => setQuellen(quellen.filter(q => q.id !== id));
             
-            // Funktion zum Kategorisieren (für Folie 8)
             const handleKategorisieren = (id, kategorie) => {
                 setQuellen(quellen.map(q => q.id === id ? { ...q, kategorie: kategorie } : q));
             };
@@ -167,7 +164,7 @@
                 </div>
             );
 
-            // --- FOLIE 3: EINFÜHRUNG ZUM SORTIEREN (Die 2 Gruppen) ---
+            // --- FOLIE 3: EINFÜHRUNG ZUM SORTIEREN ---
             const Slide3 = () => (
                 <div className="flex flex-col h-full p-10 items-center justify-center max-w-5xl mx-auto w-full fade-in">
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-4 text-center">Wir müssen ordnen</h1>
@@ -191,7 +188,7 @@
                 </div>
             );
 
-            // --- FOLIE 4: Journalisten (Mit interaktiver Eingabe & Weiter-Sperre) ---
+            // --- FOLIE 4: Journalisten ---
             const Slide4 = ({ setSlide4Completed }) => {
                 const [guess, setGuess] = useState("");
                 const [feedback, setFeedback] = useState(null);
@@ -199,9 +196,14 @@
                 const checkAnswer = (e) => {
                     e.preventDefault();
                     const cleanGuess = guess.toLowerCase().trim();
-                    if (!cleanGuess) return; // Verhindert leere Abgaben
+                    
+                    // Auch leere Eingaben werden ausgewertet (1 Klick reicht!)
+                    if (!cleanGuess) {
+                        setFeedback({ type: 'wrong', message: 'Du hast nichts eingetippt, aber sie heißen Journalisten.' });
+                        setSlide4Completed(true);
+                        return;
+                    }
 
-                    // Hilfsfunktion: Berechnet, wie viele Buchstaben falsch/anders sind
                     const getDist = (a, b) => {
                         if (a.length === 0) return b.length; 
                         if (b.length === 0) return a.length; 
@@ -224,14 +226,11 @@
                     if (minDist === 0) {
                         setFeedback({ type: 'success', message: 'Super!' });
                     } else if (minDist <= 3) {
-                        // Bei bis zu 3 verdrehten/falschen Buchstaben
                         setFeedback({ type: 'close', message: 'Fast richtig, es sind Journalisten!' });
                     } else {
-                        // Völlig falsches Wort
                         setFeedback({ type: 'wrong', message: 'Gute Idee, aber sie heißen Journalisten.' });
                     }
                     
-                    // Folie als bearbeitet markieren, um den "Weiter"-Button freizuschalten
                     setSlide4Completed(true);
                 };
 
@@ -252,7 +251,7 @@
                                         className="p-4 border-2 border-slate-200 rounded-xl text-xl focus:outline-none focus:border-green-500 transition w-full max-w-md"
                                     />
                                     <button type="submit" className="bg-green-600 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-green-700 transition shadow-md">
-                                        Überprüfen
+                                        Überprüfen / Aufdecken
                                     </button>
                                 </form>
                             </div>
@@ -268,14 +267,14 @@
                                     <li className="flex items-start gap-3"><span className="text-green-500">✅</span> Sie haben strenge Regeln: Sie dürfen nicht einfach Gerüchte weitersagen!</li>
                                     <li className="flex items-start gap-3"><span className="text-green-500">✅</span> Sie müssen Fakten <b>streng prüfen</b>, bevor sie etwas veröffentlichen.</li>
                                 </ul>
-                                <Auftrag text="Jetzt können wir das linke Rechteck füllen! Schreibe 'Journalisten' hinein. Mache dann einen kleinen Ast daran und schreibe: 'Sie sammeln Informationen, prüfen sie und berichten, was passiert.'" />
+                                <Auftrag text="Schreibe 'Journalisten' in das linke Rechteck. Mache dann einen kleinen Ast daran und schreibe: 'Sie sammeln Informationen, prüfen sie und berichten, was passiert.'" />
                             </div>
                         )}
                     </div>
                 );
             };
 
-            // --- FOLIE 5: Die Redaktion (Teamwork) ---
+            // --- FOLIE 5: Die Redaktion ---
             const Slide5 = () => (
                 <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
                     <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Teamwork</span>
@@ -294,7 +293,7 @@
                 </div>
             );
 
-            // --- FOLIE 6: WIE ARBEITEN JOURNALISTEN? (Quellen) ---
+            // --- FOLIE 6: Quellen ---
             const Slide6 = () => (
                 <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
                     <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Die Recherche</span>
@@ -318,8 +317,27 @@
                 </div>
             );
 
-            // --- FOLIE 7: Gruppe 2 (Social Media) ---
+            // --- FOLIE 7: Pressekodex (NEU) ---
             const Slide7 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Die Regeln</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Warum kann man Journalisten trauen?</h1>
+                    
+                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
+                        <EmojiBox emoji="📜⚖️" />
+                        <p className="text-2xl text-slate-700 mb-8 leading-relaxed">
+                            Journalisten haben feste Regeln, an die sich alle halten müssen, um die Wahrheit zu schützen. Diese Regeln nennt man den <b>Pressekodex</b>.
+                        </p>
+                        <a href="https://www.kindersache.de/bereiche/wissen/der-presse-kodex" target="_blank" className="inline-block w-full bg-blue-100 border-2 border-blue-300 text-blue-900 font-bold text-2xl px-8 py-6 rounded-2xl hover:bg-blue-200 transition shadow-sm mb-4">
+                            Klicke hier und erfahre, was der Pressekodex ist! 🔗
+                        </a>
+                    </div>
+                    <Auftrag text="Ergänze am Ast der Journalisten: 'Pressekodex (Strenge Regeln)'." />
+                </div>
+            );
+
+            // --- FOLIE 8: Social Media ---
+            const Slide8 = () => (
                 <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
                     <span className="text-red-600 font-bold uppercase tracking-widest mb-2 text-center">Das Gegenteil</span>
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Gruppe 2: Social Media</h1>
@@ -331,18 +349,17 @@
                             <li className="flex items-start gap-3"><span className="text-red-500">❌</span> <b>Keine Kontrolle:</b> Es gibt keine Redaktion, die etwas vorher streng prüft!</li>
                         </ul>
                     </div>
-                    <Auftrag text="Schreibe nun 'Jeder Mensch' in das rechte Rechteck. Mache daran einen Ast für 'Social Media'. Zeichne frei weitere kleine Äste für: Jeder kann posten, Keine Kontrolle." />
+                    <Auftrag text="Mache bei 'Jeder Mensch' einen Ast für 'Social Media'. Zeichne frei weitere kleine Äste für: Jeder kann posten, Keine Kontrolle." />
                 </div>
             );
 
-            // --- FOLIE 8: INTERAKTIVES SORTIEREN DER BEISPIELE ---
-            const Slide8 = ({ quellen, handleKategorisieren }) => (
+            // --- FOLIE 9: SORTIEREN ---
+            const Slide9 = ({ quellen, handleKategorisieren }) => (
                 <div className="flex flex-col h-full p-10 max-w-6xl mx-auto w-full fade-in">
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-4 text-center">Ordne deine eigenen Ideen ein!</h1>
                     <p className="text-xl text-slate-600 mb-8 text-center">Wir haben jetzt beide Gruppen kennengelernt. Wo gehören die Dinge hin, die du ganz am Anfang genannt hast?</p>
                     
                     <div className="grid grid-cols-2 gap-6 mb-8 flex-grow">
-                        {/* Bereich: Profis */}
                         <div className="bg-green-50 p-6 rounded-3xl border-2 border-green-200 flex flex-col">
                             <h2 className="text-2xl font-black text-green-900 mb-4 text-center">Die Profis (Journalisten)</h2>
                             <div className="flex-grow flex flex-col gap-3">
@@ -355,7 +372,6 @@
                             </div>
                         </div>
 
-                        {/* Bereich: Jeder Mensch */}
                         <div className="bg-red-50 p-6 rounded-3xl border-2 border-red-200 flex flex-col">
                             <h2 className="text-2xl font-black text-red-900 mb-4 text-center">Jeder Mensch (Social Media)</h2>
                             <div className="flex-grow flex flex-col gap-3">
@@ -369,7 +385,6 @@
                         </div>
                     </div>
 
-                    {/* Ungesortierte Begriffe */}
                     <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm min-h-[120px]">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Noch zu sortieren:</h3>
                         <div className="flex flex-wrap gap-4">
@@ -392,29 +407,27 @@
                 </div>
             );
 
-            // --- FOLIE 9: DEFINITION - Seriöse Quelle ---
-            const Slide9 = () => {
-                return (
-                    <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
-                        <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Das Ziel</span>
-                        <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Das Geheimnis der Wahrheit</h1>
-                        
-                        <div className="bg-green-900 p-10 rounded-3xl shadow-xl text-center flex flex-col justify-center border-4 border-green-500">
-                            <span className="text-green-300 font-bold uppercase tracking-widest">Merke dir dieses Wort:</span>
-                            <h2 className="text-5xl md:text-6xl font-black text-white mt-4 mb-8">Seriöse Quelle</h2>
-                            <p className="text-2xl text-green-100 leading-relaxed">
-                                "Seriös" bedeutet <i>vertrauenswürdig</i>. <br/>
-                                Eine seriöse Quelle wird von echten Journalisten gemacht, die ihre Infos geprüft haben. Darauf können wir uns verlassen!
-                            </p>
-                        </div>
-
-                        <Auftrag text="Mache einen Arm bei 'Quellen nutzen' und schreibe 'Seriöse Quellen: Quellen, denen man vertrauen kann' dazu." />
-                    </div>
-                );
-            };
-
-            // --- FOLIE 10: WIE FINDEN WIR SERIÖSE QUELLEN? ---
+            // --- FOLIE 10: DEFINITION - Seriöse Quelle ---
             const Slide10 = () => (
+                <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
+                    <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Das Ziel</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Das Geheimnis der Wahrheit</h1>
+                    
+                    <div className="bg-green-900 p-10 rounded-3xl shadow-xl text-center flex flex-col justify-center border-4 border-green-500">
+                        <span className="text-green-300 font-bold uppercase tracking-widest">Merke dir dieses Wort:</span>
+                        <h2 className="text-5xl md:text-6xl font-black text-white mt-4 mb-8">Seriöse Quelle</h2>
+                        <p className="text-2xl text-green-100 leading-relaxed">
+                            "Seriös" bedeutet <i>vertrauenswürdig</i>. <br/>
+                            Eine seriöse Quelle wird von echten Journalisten gemacht, die ihre Infos geprüft haben. Darauf können wir uns verlassen!
+                        </p>
+                    </div>
+
+                    <Auftrag text="Mache einen Arm bei 'Quellen nutzen' und schreibe 'Seriöse Quellen: Quellen, denen man vertrauen kann' dazu." />
+                </div>
+            );
+
+            // --- FOLIE 11: WIE FINDEN WIR SERIÖSE QUELLEN? ---
+            const Slide11 = () => (
                 <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full justify-center fade-in">
                     <span className="text-green-600 font-bold uppercase tracking-widest mb-2 text-center">Für Dich</span>
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-8 text-center">Wo findest DU seriöse Quellen?</h1>
@@ -422,12 +435,12 @@
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
                             <span className="text-4xl mb-4">💻</span>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">Kinder-<br/>Suchmaschinen</h2>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Sichere <br/>Suchmaschine</h2>
                             <p className="text-green-600 font-bold">fragFINN, Blinde Kuh</p>
                         </div>
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
                             <span className="text-4xl mb-4">📺</span>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">Kinder-<br/>Nachrichten</h2>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Nachrichten</h2>
                             <p className="text-green-600 font-bold">ZDF logo!, neuneinhalb</p>
                         </div>
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
@@ -444,54 +457,67 @@
                         </p>
                     </div>
 
-                    <Auftrag text="Notiere dir diese Beispiele für seriöse Kinder-Nachrichten noch als letzte Zweige in deine Mindmap. Deine Mindmap ist jetzt komplett!" />
+                    <Auftrag text="Notiere dir diese Beispiele für seriöse Nachrichten noch als letzte Zweige in deine Mindmap. Deine Mindmap ist jetzt komplett!" />
                 </div>
             );
 
-            // --- FOLIE 11: Interaktives 4-Fragen Quiz ---
-            const Slide11 = () => {
+            // --- FOLIE 12: NEUES INHALTS-QUIZ ---
+            const Slide12 = () => {
                 const questions = [
                     { 
-                        id: 1, emoji: "🎮🤳", quelle: "TikTok-Kanal '@PrankMaster99'",
-                        text: "Ein YouTuber postet: „Ab morgen gibt es für alle Gamer kostenlose Robux!“", 
-                        isSerios: false, explanation: "Unseriös! Keine Redaktion. Der YouTuber will wahrscheinlich nur Klicks." 
+                        id: 1, emoji: "👩‍💻🎤", 
+                        question: "Wie nennt man den Beruf von Leuten, die professionell nach Nachrichten suchen?", 
+                        options: ["YouTuber", "Journalisten", "Moderatoren"],
+                        correctAnswer: 1, 
+                        explanation: "Journalisten lernen diesen Beruf und prüfen Fakten." 
                     },
                     { 
-                        id: 2, emoji: "📺📰", quelle: "ZDF logo! Webseite",
-                        text: "Es wird gemeldet: „Wegen eines Sturms bleibt der Tierpark morgen geschlossen.“", 
-                        isSerios: true, explanation: "Seriös! 'logo!' hat eine Redaktion aus Journalisten, die das prüfen." 
+                        id: 2, emoji: "🏢👥", 
+                        question: "Wie heißt das Team im Büro, in dem sich Journalisten gegenseitig kontrollieren?", 
+                        options: ["Die Redaktion", "Das Internet", "Die Quellen"],
+                        correctAnswer: 0, 
+                        explanation: "In der Redaktion gilt das Vier-Augen-Prinzip." 
                     },
                     { 
-                        id: 3, emoji: "💬📱", quelle: "Weitergeleitete WhatsApp-Nachricht",
-                        text: "Eine Nachricht: „Wenn du das hier nicht an 10 Leute schickst, kostet WhatsApp Geld!“", 
-                        isSerios: false, explanation: "Unseriös! Ein klassischer Kettenbrief. Jeder kann das einfach abtippen." 
+                        id: 3, emoji: "👮‍♂️📸", 
+                        question: "Was ist eine 'Quelle' für Journalisten?", 
+                        options: ["Ein Wasserbrunnen", "Jemand, der etwas erfindet", "Ein Beweis (z.B. ein Polizist)"],
+                        correctAnswer: 2, 
+                        explanation: "Quellen beweisen, dass die Nachricht wirklich wahr ist." 
                     },
                     { 
-                        id: 4, emoji: "🗞️🏢", quelle: "Lokalredaktion der Stadt-Zeitung",
-                        text: "In der Zeitung steht: „Nächste Woche eröffnet der neue Spielplatz.“", 
-                        isSerios: true, explanation: "Seriös! Zeitungen haben Journalisten, die ihre Quellen (z.B. den Bürgermeister) fragen." 
+                        id: 4, emoji: "📜⚖️", 
+                        question: "Wie heißt das strenge Regelwerk, an das sich alle Journalisten halten müssen?", 
+                        options: ["Grundgesetz", "Pressekodex", "Schulordnung"],
+                        correctAnswer: 1, 
+                        explanation: "Der Pressekodex verbietet Lügen und schützt die Wahrheit." 
                     }
                 ];
 
                 const [qIdx, setQIdx] = useState(0);
                 const [answered, setAnswered] = useState(false);
-                const [userIsSerios, setUserIsSerios] = useState(null);
+                const [userIsCorrect, setUserIsCorrect] = useState(null);
                 const [score, setScore] = useState(0);
 
                 const currentQ = questions[qIdx];
                 const isDone = qIdx >= questions.length;
 
-                const handleAnswer = (ans) => {
-                    setUserIsSerios(ans); setAnswered(true);
-                    if (ans === currentQ.isSerios) setScore(score + 1);
+                const handleAnswer = (selectedIdx) => {
+                    setAnswered(true);
+                    if (selectedIdx === currentQ.correctAnswer) {
+                        setScore(score + 1);
+                        setUserIsCorrect(true);
+                    } else {
+                        setUserIsCorrect(false);
+                    }
                 };
 
                 if (isDone) {
                     return (
                         <div className="flex flex-col items-center justify-center h-full p-10 text-center fade-in max-w-2xl mx-auto">
                             <span className="text-8xl mb-6">🏆</span>
-                            <h1 className="text-5xl font-black text-slate-900 mb-4">Quiz geschafft!</h1>
-                            <p className="text-2xl text-slate-600 mb-10">Du hast {score} von {questions.length} Nachrichten richtig erkannt als echter Detektiv.</p>
+                            <h1 className="text-5xl font-black text-slate-900 mb-4">Wissens-Quiz geschafft!</h1>
+                            <p className="text-2xl text-slate-600 mb-10">Du hast {score} von {questions.length} Fragen richtig beantwortet.</p>
                             <button onClick={() => { setQIdx(0); setScore(0); setAnswered(false); }} className="bg-slate-900 text-white px-8 py-4 rounded-xl text-xl font-bold hover:bg-slate-800 transition shadow-lg">
                                 Quiz neustarten
                             </button>
@@ -502,37 +528,31 @@
                 return (
                     <div className="flex flex-col h-full p-10 max-w-4xl mx-auto w-full fade-in">
                         <div className="flex justify-between items-center mb-8">
-                            <h1 className="text-3xl font-extrabold text-slate-900">Quiz: Seriös oder Fake?</h1>
+                            <h1 className="text-3xl font-extrabold text-slate-900">Quiz: Was hast du gemerkt?</h1>
                             <span className="font-bold text-slate-500 bg-slate-200 px-4 py-2 rounded-full">Frage {qIdx + 1} / {questions.length}</span>
                         </div>
                         
                         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 flex flex-col flex-grow">
-                            <div className="bg-blue-50 px-4 py-2 rounded-xl mb-6 self-start border border-blue-100 flex items-center gap-2">
-                                <span className="text-sm font-bold text-blue-600 uppercase">Angegebene Quelle:</span>
-                                <span className="text-lg font-black text-blue-900">{currentQ.quelle}</span>
-                            </div>
-                            
-                            <div className="flex flex-col md:flex-row items-center gap-6 mb-10">
-                                <span className="text-7xl">{currentQ.emoji}</span>
-                                <p className="text-3xl font-bold text-slate-800 leading-snug">{currentQ.text}</p>
+                            <div className="flex flex-col items-center gap-4 mb-8">
+                                <span className="text-6xl">{currentQ.emoji}</span>
+                                <p className="text-3xl font-bold text-slate-800 leading-snug text-center">{currentQ.question}</p>
                             </div>
 
                             {!answered ? (
-                                <div className="flex flex-col sm:flex-row gap-4 mt-auto">
-                                    <button onClick={() => handleAnswer(true)} className="flex-1 bg-green-50 hover:bg-green-100 border-2 border-green-500 text-green-900 py-6 text-2xl font-bold rounded-2xl transition shadow-sm">
-                                        ✅ Das ist seriös
-                                    </button>
-                                    <button onClick={() => handleAnswer(false)} className="flex-1 bg-red-50 hover:bg-red-100 border-2 border-red-500 text-red-900 py-6 text-2xl font-bold rounded-2xl transition shadow-sm">
-                                        ❌ Unseriös (Fake!)
-                                    </button>
+                                <div className="flex flex-col gap-3 mt-auto">
+                                    {currentQ.options.map((opt, i) => (
+                                        <button key={i} onClick={() => handleAnswer(i)} className="bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-800 py-4 px-6 text-xl font-bold rounded-xl transition shadow-sm text-left">
+                                            {opt}
+                                        </button>
+                                    ))}
                                 </div>
                             ) : (
-                                <div className="mt-auto bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 fade-in">
-                                    <h3 className={`text-2xl font-black mb-3 ${userIsSerios === currentQ.isSerios ? 'text-green-600' : 'text-red-600'}`}>
-                                        {userIsSerios === currentQ.isSerios ? 'Richtig!' : 'Leider falsch.'}
+                                <div className="mt-auto bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 fade-in text-center">
+                                    <h3 className={`text-3xl font-black mb-3 ${userIsCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                        {userIsCorrect ? 'Richtig!' : 'Leider falsch.'}
                                     </h3>
                                     <p className="text-xl text-slate-700 mb-8">{currentQ.explanation}</p>
-                                    <button onClick={() => { setAnswered(false); setUserIsSerios(null); setQIdx(qIdx + 1); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 text-xl font-bold rounded-xl transition shadow-md">
+                                    <button onClick={() => { setAnswered(false); setUserIsCorrect(null); setQIdx(qIdx + 1); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-xl font-bold rounded-xl transition shadow-md">
                                         {qIdx === questions.length - 1 ? 'Zum Ergebnis' : 'Nächste Frage'}
                                     </button>
                                 </div>
@@ -542,13 +562,36 @@
                 );
             };
 
-            // --- FOLIE 12: Abschluss ---
-            const Slide12 = () => (
+            // --- FOLIE 13: Abschluss ---
+            const Slide13 = () => (
                 <div className="flex flex-col items-center justify-center h-full text-center p-10 max-w-4xl mx-auto w-full fade-in">
                     <h1 className="text-5xl font-black text-slate-900 mb-6">Perfekt gemacht! 👏</h1>
                     <p className="text-2xl text-slate-600 mb-12">Deine Mindmap ist fertig und du weißt, woran du echte Nachrichten erkennst.</p>
                     <div className="bg-green-100 border-2 border-green-500 p-8 rounded-3xl w-full max-w-2xl shadow-sm">
                         <p className="text-3xl font-bold text-green-900">Du bist bereit für den echten Nachrichten-Dschungel!</p>
+                    </div>
+                </div>
+            );
+
+            // --- FOLIE 14: Extra-Aufgabe ---
+            const Slide14 = () => (
+                <div className="flex flex-col items-center justify-center h-full p-10 text-center max-w-4xl mx-auto w-full fade-in">
+                    <span className="text-yellow-600 font-bold uppercase tracking-widest mb-2 text-center">Für schnelle Detektive</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-8">Extra-Aufgabe: Welche Artikel gibt es?</h1>
+                    
+                    <div className="bg-white p-10 rounded-3xl border-4 border-yellow-300 shadow-xl text-center w-full">
+                        <EmojiBox emoji="📰🕵️‍♂️" />
+                        <p className="text-2xl text-slate-700 mb-8 leading-relaxed">
+                            Hast du noch Zeit? Dann finde heraus, welche verschiedenen Arten von Zeitungsartikeln es eigentlich gibt!
+                        </p>
+                        <a href="https://www.kindersache.de/bereiche/wissen/die-verschiedenen-arten-von-artikeln" target="_blank" className="inline-block w-full bg-yellow-300 text-yellow-900 font-black text-2xl px-8 py-6 rounded-2xl hover:bg-yellow-400 transition shadow-md mb-8">
+                            Hier geht's zum Text auf Kindersache.de 🔗
+                        </a>
+                        <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                            <p className="text-xl text-slate-800 font-bold">
+                                📝 Lies den Text und schreibe 3 Arten von Artikeln auf die Rückseite deines Blattes.
+                            </p>
+                        </div>
                     </div>
                 </div>
             );
@@ -573,11 +616,13 @@
                         {currentSlide === 5 && <Slide5 />}
                         {currentSlide === 6 && <Slide6 />}
                         {currentSlide === 7 && <Slide7 />}
-                        {currentSlide === 8 && <Slide8 quellen={quellen} handleKategorisieren={handleKategorisieren} />}
-                        {currentSlide === 9 && <Slide9 />}
+                        {currentSlide === 8 && <Slide8 />}
+                        {currentSlide === 9 && <Slide9 quellen={quellen} handleKategorisieren={handleKategorisieren} />}
                         {currentSlide === 10 && <Slide10 />}
                         {currentSlide === 11 && <Slide11 />}
                         {currentSlide === 12 && <Slide12 />}
+                        {currentSlide === 13 && <Slide13 />}
+                        {currentSlide === 14 && <Slide14 />}
                     </div>
 
                     {/* Navigation Footer */}
